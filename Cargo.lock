@@ -669,6 +669,7 @@ name = "nitron"
 version = "0.1.0"
 dependencies = [
  "image",
+ "once_cell",
  "vulkano",
  "vulkano-shaders",
  "winit",
