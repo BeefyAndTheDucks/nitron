@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use crate::vulkan_init::{setup, example_triangle};
+
+mod vulkan_init;
+
+pub fn start() {
+    let context = setup();
+    example_triangle(context);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub fn stop() {
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }
