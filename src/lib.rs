@@ -1,32 +1,16 @@
-use crate::vulkan_init::{setup};
-use crate::renderer::{run};
+use winit::event_loop::EventLoop;
+use crate::renderer::App;
 
-mod vulkan_init;
 mod renderer;
-mod vulkan_context;
+mod types;
+mod model;
 mod shaders;
 
 pub fn start() {
-    let event_loop = setup();
+    let event_loop = EventLoop::new().unwrap();
+    let mut app = App::new(&event_loop);
 
-    let vertex1 = renderer::Vert { position: [-0.5, -0.5] };
-    let vertex2 = renderer::Vert { position: [-0.5,  0.5] };
-    let vertex3 = renderer::Vert { position: [ 0.5,  0.5] };
-    let vertex4 = renderer::Vert { position: [ 0.5, -0.5] };
-
-    let vertices = vec![vertex1, vertex2, vertex3, vertex4];
-
-    let indices = vec!
-    [
-        0, 1, 2,
-        2, 3, 0
-    ];
-
-    run(
-        event_loop,
-        vertices,
-        indices
-    );
+    event_loop.run_app(&mut app).unwrap();
 }
 
 pub fn stop() {
