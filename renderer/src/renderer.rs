@@ -1,9 +1,8 @@
-use crate::model::{INDICES, NORMALS, POSITIONS};
+use crate::rendered_object::RenderedObject;
 use crate::shaders::{frag, vert};
-use crate::types::{Normal, Position};
-use glam::{Mat3, Mat4, Vec3};
+use crate::types::Vert;
+use glam::{Mat4, Vec3};
 use std::sync::Arc;
-use std::time::Instant;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -36,19 +35,18 @@ use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::window::{Window, WindowId};
+use winit::window::{Window, WindowAttributes, WindowId};
 
-pub struct App {
+pub struct Renderer {
     instance: Arc<Instance>,
     device: Arc<Device>,
     queue: Arc<Queue>,
     memory_allocator: Arc<StandardMemoryAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
-    vertex_buffer: Subbuffer<[Position]>,
-    normals_buffer: Subbuffer<[Normal]>,
-    index_buffer: Subbuffer<[u16]>,
     uniform_buffer_allocator: SubbufferAllocator,
+    window_attribs: WindowAttributes,
+    objects: Vec<RenderReadyObject>,
     rcx: Option<RenderContext>,
 }
 
@@ -62,7 +60,12 @@ struct RenderContext {
     pipeline: Arc<GraphicsPipeline>,
     recreate_swapchain: bool,
     previous_frame_end: Option<Box<dyn GpuFuture>>,
-    rotation_start: Instant,
+}
+
+struct RenderReadyObject {
+    pub transform: Mat4,
+    pub vertex_buffer: Subbuffer<[Vert]>,
+    pub index_buffer: Subbuffer<[u32]>,
 }
 
 fn create_buffer<T, I>(
@@ -90,8 +93,19 @@ where
     )
 }
 
-impl App {
-    pub fn new(event_loop: &EventLoop<()>) -> Self {
+impl Renderer {
+    pub fn add_object(&mut self, obj: RenderedObject) {
+        let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, obj.vertices).expect("Failed to create vertex buffer");
+        let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, obj.indices).expect("Failed to create index buffer");
+        
+        self.objects.push(RenderReadyObject {
+            transform: obj.transform,
+            vertex_buffer,
+            index_buffer
+        });
+    }
+    
+    pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
         let library = VulkanLibrary::new().unwrap();
         let required_extensions = Surface::required_extensions(event_loop).unwrap();
         let instance = Instance::new(
@@ -164,13 +178,6 @@ impl App {
             Default::default(),
         ));
 
-        let vertex_buffer = create_buffer(memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, POSITIONS)
-            .unwrap();
-        let normals_buffer = create_buffer(memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, NORMALS)
-            .unwrap();
-        let index_buffer = create_buffer(memory_allocator.clone(), BufferUsage::INDEX_BUFFER, INDICES)
-            .unwrap();
-
         let uniform_buffer_allocator = SubbufferAllocator::new(
             memory_allocator.clone(),
             SubbufferAllocatorCreateInfo {
@@ -181,27 +188,26 @@ impl App {
             },
         );
 
-        App {
+        Renderer {
             instance,
             device,
             queue,
             memory_allocator,
             descriptor_set_allocator,
             command_buffer_allocator,
-            vertex_buffer,
-            normals_buffer,
-            index_buffer,
             uniform_buffer_allocator,
+            window_attribs,
+            objects: Vec::new(),
             rcx: None,
         }
     }
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler for Renderer {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = Arc::new(
             event_loop
-                .create_window(Window::default_attributes())
+                .create_window(self.window_attribs.clone())
                 .unwrap(),
         );
         let surface = Surface::from_window(self.instance.clone(), window.clone()).unwrap();
@@ -270,7 +276,7 @@ impl ApplicationHandler for App {
             .entry_point("main")
             .unwrap();
 
-        let (framebuffers, pipeline) = regen_window(
+        let (framebuffers, pipeline) = regen_framebuffer(
             window_size,
             images,
             render_pass.clone(),
@@ -280,8 +286,6 @@ impl ApplicationHandler for App {
         );
 
         let previous_frame_end = Some(sync::now(self.device.clone()).boxed());
-
-        let rotation_start = Instant::now();
 
         self.rcx = Some(RenderContext {
             window,
@@ -293,7 +297,6 @@ impl ApplicationHandler for App {
             pipeline,
             recreate_swapchain: false,
             previous_frame_end,
-            rotation_start,
         });
     }
 
@@ -326,7 +329,7 @@ impl ApplicationHandler for App {
                         .expect("failed to recreate swapchain");
 
                     rcx.swapchain = new_swapchain;
-                    (rcx.framebuffers, rcx.pipeline) = regen_window(
+                    (rcx.framebuffers, rcx.pipeline) = regen_framebuffer(
                         window_size,
                         new_images,
                         rcx.render_pass.clone(),
@@ -337,12 +340,7 @@ impl ApplicationHandler for App {
                     rcx.recreate_swapchain = false;
                 }
 
-                let uniform_buffer = {
-                    let elapsed = rcx.rotation_start.elapsed();
-                    let rotation =
-                        elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 / 1_000_000_000.0;
-                    let rotation = Mat3::from_rotation_y(rotation as f32);
-
+                let uniform_buffers = {
                     // NOTE: This teapot was meant for OpenGL where the origin is at the lower left
                     // instead the origin is at the upper left in Vulkan, so we reverse the Y axis.
                     let aspect_ratio = rcx.swapchain.image_extent()[0] as f32
@@ -361,26 +359,40 @@ impl ApplicationHandler for App {
                     );
                     let scale = Mat4::from_scale(Vec3::splat(0.01));
 
-                    let uniform_data = vert::Data {
-                        world: Mat4::from_mat3(rotation).to_cols_array_2d(),
-                        view: (view * scale).to_cols_array_2d(),
-                        proj: proj.to_cols_array_2d(),
-                    };
+                    let mut buffers = Vec::new();
+                    
+                    for obj in &self.objects {
+                        let uniform_data = vert::Data {
+                            world: obj.transform.to_cols_array_2d(),
+                            view: (view * scale).to_cols_array_2d(),
+                            proj: proj.to_cols_array_2d(),
+                        };
 
-                    let buffer = self.uniform_buffer_allocator.allocate_sized().unwrap();
-                    *buffer.write().unwrap() = uniform_data;
+                        let buffer = self.uniform_buffer_allocator.allocate_sized().unwrap();
+                        *buffer.write().unwrap() = uniform_data;
 
-                    buffer
+                        buffers.push(buffer);
+                    }
+                    
+                    buffers
                 };
 
                 let layout = &rcx.pipeline.layout().set_layouts()[0];
-                let descriptor_set = DescriptorSet::new(
-                    self.descriptor_set_allocator.clone(),
-                    layout.clone(),
-                    [WriteDescriptorSet::buffer(0, uniform_buffer)],
-                    [],
-                )
-                    .unwrap();
+                let mut descriptor_sets = Vec::new();
+                
+                let mut idx = 0;
+                
+                for _obj in &self.objects {
+                    descriptor_sets.push(DescriptorSet::new(
+                        self.descriptor_set_allocator.clone(),
+                        layout.clone(),
+                        [WriteDescriptorSet::buffer(0, uniform_buffers[idx].clone())],
+                        [],
+                    )
+                        .unwrap());
+
+                    idx += 1;
+                }
 
                 let (image_index, suboptimal, acquire_future) = match acquire_next_image(
                     rcx.swapchain.clone(),
@@ -422,23 +434,31 @@ impl ApplicationHandler for App {
                     )
                     .unwrap()
                     .bind_pipeline_graphics(rcx.pipeline.clone())
-                    .unwrap()
-                    .bind_descriptor_sets(
+                    .unwrap();
+                
+                idx = 0;
+                for obj in &self.objects {
+                    builder
+                        .bind_descriptor_sets(
                         PipelineBindPoint::Graphics,
                         rcx.pipeline.layout().clone(),
                         0,
-                        descriptor_set,
+                        descriptor_sets[idx].clone(),
                     )
-                    .unwrap()
-                    .bind_vertex_buffers(
+                        .unwrap()
+                        .bind_vertex_buffers(
                         0,
-                        (self.vertex_buffer.clone(), self.normals_buffer.clone()),
+                        obj.vertex_buffer.clone(),
                     )
-                    .unwrap()
-                    .bind_index_buffer(self.index_buffer.clone())
-                    .unwrap();
-                unsafe { builder.draw_indexed(self.index_buffer.len() as u32, 1, 0, 0, 0) }
-                    .unwrap();
+                        .unwrap()
+                        .bind_index_buffer(obj.index_buffer.clone())
+                        .unwrap()
+                    ;
+                    unsafe { builder.draw_indexed(obj.index_buffer.len() as u32, 1, 0, 0, 0) }
+                        .unwrap();
+                    
+                    idx += 1;
+                }
 
                 builder.end_render_pass(Default::default()).unwrap();
 
@@ -481,7 +501,7 @@ impl ApplicationHandler for App {
 }
 
 /// This function is called once during initialization, then again whenever the window is resized.
-fn regen_window(
+fn regen_framebuffer(
     window_size: PhysicalSize<u32>,
     images: Vec<Arc<Image>>,
     render_pass: Arc<RenderPass>,
@@ -529,7 +549,7 @@ fn regen_window(
     // driver to optimize things, at the cost of slower window resizes.
     // https://computergraphics.stackexchange.com/questions/5742/vulkan-best-way-of-updating-pipeline-viewport
     let pipeline = {
-        let vertex_input_state = [Position::per_vertex(), Normal::per_vertex()]
+        let vertex_input_state = Vert::per_vertex()
             .definition(vs)
             .unwrap();
         let stages = [
