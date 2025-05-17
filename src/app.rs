@@ -11,7 +11,7 @@ use crate::types::Object;
 pub struct App {
     pub renderer: Renderer,
     
-    update_event_listeners: Vec<fn(f32)>,
+    update_event_listeners: Vec<Box<dyn Fn(f32)>>,
 
     last_frame: Instant
 }
@@ -32,8 +32,8 @@ impl App {
         )
     }
     
-    pub fn add_update_listener(&mut self, listener: fn(f32)) {
-        self.update_event_listeners.push(listener);
+    pub fn add_update_listener(&mut self, listener: impl Fn(f32) + 'static) {
+        self.update_event_listeners.push(Box::new(listener));
     }
 
     pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transform: Mat4) -> Object {
