@@ -347,9 +347,9 @@ impl Renderer {
                         0.01,
                         100.0,
                     );
-                    let view = Mat4::look_at_rh(
-                        Vec3::new(0.3, 0.3, 1.0),
-                        Vec3::new(0.0, 0.0, 0.0),
+                    let view = Mat4::look_to_rh(
+                        Vec3::new(0.0, 0.0, 1.0),
+                        Vec3::new(0.0, 0.0, -1.0),
                         Vec3::new(0.0, -1.0, 0.0),
                     );
                     let scale = Mat4::from_scale(Vec3::splat(0.01));
