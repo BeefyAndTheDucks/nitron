@@ -1,6 +1,5 @@
 use glam::{Mat4, Vec3};
 use winit::window::Window;
-use renderer::rendered_object::RenderedObject;
 use crate::app::App;
 use crate::model::{INDICES, VERTICES};
 
@@ -12,14 +11,11 @@ pub fn start(window_title: String) {
         .with_title(window_title);
     let (mut app, event_loop) = App::new(attributes);
     
-    let quad = RenderedObject::new_with_identity(VERTICES.to_vec(), INDICES.to_vec());
-    app.renderer.add_object(quad);
+    let _quad1 = app.renderer.create_object(VERTICES.to_vec(), INDICES.to_vec(), Mat4::IDENTITY);
 
     let quad2_transform = Mat4::from_translation(Vec3::new(0.0, 30.0, 0.0));
-    let quad2 = RenderedObject::new(quad2_transform, VERTICES.to_vec(), INDICES.to_vec());
-    app.renderer.add_object(quad2);
-
-
+    let _quad2 = app.renderer.create_object(VERTICES.to_vec(), INDICES.to_vec(), quad2_transform);
+    
     event_loop.run_app(&mut app).unwrap();
 }
 

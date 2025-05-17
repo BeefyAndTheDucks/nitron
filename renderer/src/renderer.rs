@@ -45,7 +45,7 @@ pub struct Renderer {
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     uniform_buffer_allocator: SubbufferAllocator,
     window_attribs: WindowAttributes,
-    objects: Vec<RenderReadyObject>,
+    objects: Vec<RenderedObject>,
     rcx: Option<RenderContext>,
 }
 
@@ -61,13 +61,7 @@ struct RenderContext {
     previous_frame_end: Option<Box<dyn GpuFuture>>,
 }
 
-struct RenderReadyObject {
-    pub transform: Mat4,
-    pub vertex_buffer: Subbuffer<[Vert]>,
-    pub index_buffer: Subbuffer<[u32]>,
-}
-
-fn create_buffer<T, I>(
+pub fn create_buffer<T, I>(
     allocator: Arc<dyn MemoryAllocator>,
     usage: BufferUsage,
     iter: I,
@@ -93,17 +87,21 @@ where
 }
 
 impl Renderer {
-    pub fn add_object(&mut self, obj: RenderedObject) {
-        let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, obj.vertices).expect("Failed to create vertex buffer");
-        let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, obj.indices).expect("Failed to create index buffer");
-
-        self.objects.push(RenderReadyObject {
-            transform: obj.transform,
+    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4) -> &RenderedObject {
+        let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, vertices).expect("Failed to create vertex buffer");
+        let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, indices).expect("Failed to create index buffer");
+        
+        let obj = RenderedObject {
+            transform,
             vertex_buffer,
             index_buffer
-        });
-    }
+        };
 
+        self.objects.push(obj);
+        
+        self.objects.last().unwrap()
+    }
+    
     pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
         let library = VulkanLibrary::new().unwrap();
         let required_extensions = Surface::required_extensions(event_loop).unwrap();
