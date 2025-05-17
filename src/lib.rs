@@ -1,24 +1,33 @@
-use glam::{Mat4, Vec3};
-use winit::window::Window;
 use crate::app::App;
-use crate::model::{INDICES, VERTICES};
+use winit::event_loop::EventLoop;
+use winit::window::Window;
 
-mod model;
-mod app;
+pub mod app;
+pub mod types;
 
-pub fn start(window_title: String) {
-    let attributes = Window::default_attributes()
-        .with_title(window_title);
-    let (mut app, event_loop) = App::new(attributes);
-    
-    let _quad1 = app.renderer.create_object(VERTICES.to_vec(), INDICES.to_vec(), Mat4::IDENTITY);
-
-    let quad2_transform = Mat4::from_translation(Vec3::new(0.0, 30.0, 0.0));
-    let _quad2 = app.renderer.create_object(VERTICES.to_vec(), INDICES.to_vec(), quad2_transform);
-    
-    event_loop.run_app(&mut app).unwrap();
+pub struct Nitron {
+    pub app: App,
 }
 
-pub fn stop() {
+impl Nitron {
+    pub fn create(window_title: String) -> (Self, EventLoop<()>) {
+        let attributes = Window::default_attributes()
+            .with_title(window_title);
+        let (app, event_loop) = App::new(attributes);
 
+        (
+            Nitron {
+                app,
+            },
+            event_loop
+        )
+    }
+
+    pub fn run(&mut self, event_loop: EventLoop<()>) {
+        event_loop.run_app(&mut self.app).unwrap();
+    }
+
+    pub fn stop(&mut self) {
+        
+    }
 }

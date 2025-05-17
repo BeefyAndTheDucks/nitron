@@ -6,7 +6,7 @@ use vulkano::pipeline::graphics::vertex_input::Vertex;
 pub struct Vert {
     #[format(R32G32B32_SFLOAT)]
     pub position: [f32; 3],
-    
+
     #[format(R32G32B32_SFLOAT)]
     pub normal: [f32; 3],
 }
