@@ -6,6 +6,7 @@ use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{WindowAttributes, WindowId};
+use crate::types::Object;
 
 pub struct App {
     pub renderer: Renderer,
@@ -34,8 +35,8 @@ impl App {
     pub fn add_update_listener(&mut self, listener: fn(f32)) {
         self.update_event_listeners.push(listener);
     }
-    
-    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transform: Mat4) {
+
+    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transform: Mat4) -> Object {
         let mut renderer_vertices = Vec::new();
         for vert in vertices.iter() {
             renderer_vertices.push(Vert {
@@ -43,7 +44,13 @@ impl App {
                 normal: vert.normal.to_array(),
             })
         }
-        self.renderer.create_object(renderer_vertices, indices, transform);
+        let id = self.renderer.create_object(renderer_vertices, indices, transform);
+
+        Object::new(id, transform)
+    }
+
+    pub fn update_object(&mut self, object: &Object) {
+        self.renderer.update_object(object.id, object.transform);
     }
 }
 

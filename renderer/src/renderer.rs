@@ -87,7 +87,7 @@ where
 }
 
 impl Renderer {
-    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4) -> &RenderedObject {
+    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4) -> usize {
         let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, vertices).expect("Failed to create vertex buffer");
         let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, indices).expect("Failed to create index buffer");
         
@@ -98,10 +98,15 @@ impl Renderer {
         };
 
         self.objects.push(obj);
-        
-        self.objects.last().unwrap()
+        self.objects.len() - 1
     }
-    
+
+    pub fn update_object(&mut self, id: usize, transform: Mat4) {
+        if let Some(object) = self.objects.get_mut(id) {
+            object.transform = transform;
+        }
+    }
+
     pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
         let library = VulkanLibrary::new().unwrap();
         let required_extensions = Surface::required_extensions(event_loop).unwrap();
