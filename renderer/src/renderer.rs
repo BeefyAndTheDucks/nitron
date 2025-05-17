@@ -31,7 +31,6 @@ use vulkano::shader::EntryPoint;
 use vulkano::swapchain::{acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo};
 use vulkano::sync::GpuFuture;
 use vulkano::{sync, Validated, VulkanError, VulkanLibrary};
-use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -97,14 +96,14 @@ impl Renderer {
     pub fn add_object(&mut self, obj: RenderedObject) {
         let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, obj.vertices).expect("Failed to create vertex buffer");
         let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, obj.indices).expect("Failed to create index buffer");
-        
+
         self.objects.push(RenderReadyObject {
             transform: obj.transform,
             vertex_buffer,
             index_buffer
         });
     }
-    
+
     pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
         let library = VulkanLibrary::new().unwrap();
         let required_extensions = Surface::required_extensions(event_loop).unwrap();
@@ -201,10 +200,8 @@ impl Renderer {
             rcx: None,
         }
     }
-}
 
-impl ApplicationHandler for Renderer {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = Arc::new(
             event_loop
                 .create_window(self.window_attribs.clone())
@@ -300,7 +297,7 @@ impl ApplicationHandler for Renderer {
         });
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
         let rcx = self.rcx.as_mut().unwrap();
 
         match event {
@@ -360,7 +357,7 @@ impl ApplicationHandler for Renderer {
                     let scale = Mat4::from_scale(Vec3::splat(0.01));
 
                     let mut buffers = Vec::new();
-                    
+
                     for obj in &self.objects {
                         let uniform_data = vert::Data {
                             world: obj.transform.to_cols_array_2d(),
@@ -373,15 +370,15 @@ impl ApplicationHandler for Renderer {
 
                         buffers.push(buffer);
                     }
-                    
+
                     buffers
                 };
 
                 let layout = &rcx.pipeline.layout().set_layouts()[0];
                 let mut descriptor_sets = Vec::new();
-                
+
                 let mut idx = 0;
-                
+
                 for _obj in &self.objects {
                     descriptor_sets.push(DescriptorSet::new(
                         self.descriptor_set_allocator.clone(),
@@ -435,28 +432,28 @@ impl ApplicationHandler for Renderer {
                     .unwrap()
                     .bind_pipeline_graphics(rcx.pipeline.clone())
                     .unwrap();
-                
+
                 idx = 0;
                 for obj in &self.objects {
                     builder
                         .bind_descriptor_sets(
-                        PipelineBindPoint::Graphics,
-                        rcx.pipeline.layout().clone(),
-                        0,
-                        descriptor_sets[idx].clone(),
-                    )
+                            PipelineBindPoint::Graphics,
+                            rcx.pipeline.layout().clone(),
+                            0,
+                            descriptor_sets[idx].clone(),
+                        )
                         .unwrap()
                         .bind_vertex_buffers(
-                        0,
-                        obj.vertex_buffer.clone(),
-                    )
+                            0,
+                            obj.vertex_buffer.clone(),
+                        )
                         .unwrap()
                         .bind_index_buffer(obj.index_buffer.clone())
                         .unwrap()
                     ;
                     unsafe { builder.draw_indexed(obj.index_buffer.len() as u32, 1, 0, 0, 0) }
                         .unwrap();
-                    
+
                     idx += 1;
                 }
 
@@ -494,7 +491,7 @@ impl ApplicationHandler for Renderer {
         }
     }
 
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+    pub fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let rcx = self.rcx.as_mut().unwrap();
         rcx.window.request_redraw();
     }
