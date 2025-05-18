@@ -1,11 +1,34 @@
+use crate::types::{Object, Vert};
+use glam::{Quat, Vec3};
 use std::time::Instant;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::window::{WindowId, Window};
+use winit::window::{Window, WindowId};
+use crate::app::App;
+
+pub mod app;
+pub mod types;
+
+pub enum NitronTask {
+    UpdateObject(Object),
+    CreateObject {
+        vertices: Vec<Vert>,
+        indices: Vec<u32>,
+        position: Vec3,
+        rotation: Quat,
+        scale: Vec3,
+    },
+    CreateObjectFromFile {
+        path: String,
+        position: Vec3,
+        rotation: Quat,
+        scale: Vec3,
+    }
+}
 
 pub trait NitronApplication {
-    fn update(&mut self, delta_time: f32);
+    fn update(&mut self, delta_time: f32) -> Vec<NitronTask>;
     fn on_window_event(&mut self, event: &WindowEvent);
 }
 
@@ -14,11 +37,6 @@ pub struct Nitron {
     application: Option<Box<dyn NitronApplication>>,
     last_frame: Instant,
 }
-
-use crate::app::App;
-
-pub mod app;
-pub mod types;
 
 impl Nitron {
     pub fn create(window_title: String) -> (Self, EventLoop<()>) {
@@ -59,7 +77,23 @@ impl ApplicationHandler for Nitron {
                     let now = Instant::now();
                     let delta_time = now.duration_since(self.last_frame).as_secs_f32();
                     
-                    application.update(delta_time);
+                    // Get the tasks from the application update
+                    let tasks = application.update(delta_time);
+                    
+                    // Process all tasks
+                    for task in tasks {
+                        match task {
+                            NitronTask::UpdateObject(object) => {
+                                self.app.update_object(object);
+                            }
+                            NitronTask::CreateObject { vertices, indices, position, rotation, scale } => {
+                                self.app.create_object(vertices, indices, position, rotation, scale);
+                            }
+                            NitronTask::CreateObjectFromFile { path, position, rotation, scale } => {
+                                self.app.create_objects_from_file(&path, position, rotation, scale);
+                            }
+                        }
+                    }
                     
                     self.last_frame = now;
                 }
