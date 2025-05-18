@@ -320,8 +320,12 @@ impl Renderer {
         });
     }
 
-    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) {
         if let Some(gui) = &mut self.gui {
+            if event == WindowEvent::RedrawRequested {
+                gui.immediate_ui(layout_function);
+            }
+
             let consumed = gui.update(&event);
 
             if consumed {

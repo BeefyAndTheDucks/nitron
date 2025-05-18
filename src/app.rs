@@ -1,3 +1,4 @@
+use egui_winit_vulkano::Gui;
 use crate::types::{Object, Transformation};
 use glam::Vec3;
 use renderer::renderer::Renderer;
@@ -73,8 +74,8 @@ impl App {
         self.renderer.resumed(event_loop)
     }
 
-    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        self.renderer.window_event(event_loop, window_id, event.clone());
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) {
+        self.renderer.window_event(event_loop, window_id, event.clone(), layout_function);
     }
 
     pub fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {

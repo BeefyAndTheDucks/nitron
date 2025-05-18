@@ -1,5 +1,6 @@
 use crate::app::App;
 use crate::types::{Object, Transformation, Vert};
+use egui_winit_vulkano::Gui;
 use std::time::Instant;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -25,6 +26,7 @@ pub enum NitronTask {
 pub trait NitronApplication {
     fn update(&mut self, delta_time: f32) -> Vec<NitronTask>;
     fn on_window_event(&mut self, event: &WindowEvent);
+    fn create_ui(&mut self, gui: &mut Gui);
 }
 
 pub struct Nitron {
@@ -64,9 +66,11 @@ impl ApplicationHandler for Nitron {
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        self.app.window_event(event_loop, window_id, event.clone());
-
         if let Some(application) = &mut self.application {
+            self.app.window_event(event_loop, window_id, event.clone(), |gui| {
+                application.create_ui(gui);
+            });
+
             match event.clone() {
                 WindowEvent::RedrawRequested => {
                     let now = Instant::now();
