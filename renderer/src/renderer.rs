@@ -3,6 +3,7 @@ use crate::shaders::{frag, vert};
 use crate::types::Vert;
 use glam::{Mat4, Vec3};
 use std::sync::Arc;
+use egui_winit_vulkano::{Gui, GuiConfig};
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -47,6 +48,7 @@ pub struct Renderer {
     window_attribs: WindowAttributes,
     objects: Vec<RenderedObject>,
     rcx: Option<RenderContext>,
+    gui: Option<Gui>,
 }
 
 struct RenderContext {
@@ -201,6 +203,7 @@ impl Renderer {
             window_attribs,
             objects: Vec::new(),
             rcx: None,
+            gui: None
         }
     }
 
@@ -210,8 +213,17 @@ impl Renderer {
                 .create_window(self.window_attribs.clone())
                 .unwrap(),
         );
+        
         let surface = Surface::from_window(self.instance.clone(), window.clone()).unwrap();
         let window_size = window.inner_size();
+
+        self.gui = Some(Gui::new(
+            event_loop,
+            surface.clone(),
+            self.queue.clone(),
+            Format::R8G8B8A8_UNORM,
+            GuiConfig::default(),
+        ));
 
         let (swapchain, images) = {
             let surface_capabilities = self
@@ -301,6 +313,17 @@ impl Renderer {
     }
 
     pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+        if let Some(gui) = &mut self.gui {
+            let consumed = gui.update(&event);
+
+            if consumed {
+                if let Some(rcx) = &self.rcx {
+                    rcx.window.request_redraw();
+                }
+                return;
+            }
+        }
+        
         let rcx = self.rcx.as_mut().unwrap();
 
         match event {
@@ -463,13 +486,21 @@ impl Renderer {
                 builder.end_render_pass(Default::default()).unwrap();
 
                 let command_buffer = builder.build().unwrap();
-                let future = rcx
+                let mut future = rcx
                     .previous_frame_end
                     .take()
                     .unwrap()
                     .join(acquire_future)
                     .then_execute(self.queue.clone(), command_buffer)
-                    .unwrap()
+                    .unwrap();
+
+                if let Some(gui) = &mut self.gui {
+                    let framebuffer = rcx.framebuffers[image_index];
+                    
+                    future = gui.draw_on_image(future, rcx.swapchain.clone());
+                }
+                
+                future
                     .then_swapchain_present(
                         self.queue.clone(),
                         SwapchainPresentInfo::swapchain_image_index(rcx.swapchain.clone(), image_index),
@@ -489,6 +520,8 @@ impl Renderer {
                         rcx.previous_frame_end = Some(sync::now(self.device.clone()).boxed());
                     }
                 }
+
+                
             }
             _ => {}
         }
