@@ -52,14 +52,12 @@ impl App {
     pub fn update_object(&mut self, object: &Object) {
         self.renderer.update_object(object.id, object.transform);
     }
-}
 
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.renderer.resumed(event_loop)
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::RedrawRequested => {
                 let now = Instant::now();
@@ -77,7 +75,7 @@ impl ApplicationHandler for App {
         self.renderer.window_event(event_loop, window_id, event.clone());
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    pub fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.renderer.about_to_wait(event_loop);
     }
 }

@@ -22,12 +22,4 @@ impl Nitron {
             event_loop
         )
     }
-
-    pub fn run(&mut self, event_loop: EventLoop<()>) {
-        event_loop.run_app(&mut self.app).unwrap();
-    }
-
-    pub fn stop(&mut self) {
-        
-    }
 }
