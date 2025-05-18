@@ -1,5 +1,5 @@
 use crate::types::Object;
-use glam::Mat4;
+use glam::{Quat, Vec3};
 use renderer::renderer::Renderer;
 use renderer::types::Vert;
 use winit::event::WindowEvent;
@@ -23,7 +23,7 @@ impl App {
         )
     }
 
-    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transform: Mat4) -> Object {
+    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, position: Vec3, rotation: Quat, scale: Vec3) -> Object {
         let mut renderer_vertices = Vec::new();
         for vert in vertices.iter() {
             renderer_vertices.push(Vert {
@@ -31,13 +31,16 @@ impl App {
                 normal: vert.normal.to_array(),
             })
         }
-        let id = self.renderer.create_object(renderer_vertices, indices, transform);
 
-        Object::new(id, transform)
+        let transform = Object::generate_transform(position, rotation, scale);
+
+        let id = self.renderer.create_object(renderer_vertices, indices, transform.clone());
+
+        Object::new(id, position, rotation, scale)
     }
 
     pub fn update_object(&mut self, object: Object) {
-        self.renderer.update_object(object.id, object.transform);
+        self.renderer.update_object(object.id, object.get_transform());
     }
 
     pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
