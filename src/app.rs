@@ -11,7 +11,7 @@ use crate::types::Object;
 pub struct App {
     pub renderer: Renderer,
     
-    update_event_listeners: Vec<Box<dyn Fn(f32)>>,
+    event_listeners: Vec<Box<dyn AppEventListener>>,
 
     last_frame: Instant
 }
@@ -25,15 +25,15 @@ impl App {
         (
             App {
                 renderer,
-                update_event_listeners: app_event_listeners,
+                event_listeners: app_event_listeners,
                 last_frame: Instant::now()
             },
             event_loop
         )
     }
     
-    pub fn add_update_listener(&mut self, listener: impl Fn(f32) + 'static) {
-        self.update_event_listeners.push(Box::new(listener));
+    pub fn add_update_listener(&mut self, listener: Box<dyn AppEventListener>) {
+        self.event_listeners.push(listener);
     }
 
     pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transform: Mat4) -> Object {
@@ -63,8 +63,8 @@ impl App {
                 let now = Instant::now();
 
                 let delta_time = now.duration_since(self.last_frame).as_secs_f32();
-                for listener in self.update_event_listeners.iter() {
-                    listener(delta_time);
+                for listener in self.event_listeners.iter() {
+                    listener.on_update(delta_time);
                 }
 
                 self.last_frame = now;
@@ -78,4 +78,8 @@ impl App {
     pub fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.renderer.about_to_wait(event_loop);
     }
+}
+
+pub trait AppEventListener {
+    fn on_update(&self, delta_time: f32);
 }
