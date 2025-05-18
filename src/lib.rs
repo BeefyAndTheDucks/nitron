@@ -1,11 +1,10 @@
-use crate::types::{Object, Vert};
-use glam::{Quat, Vec3};
+use crate::app::App;
+use crate::types::{Object, Transformation, Vert};
 use std::time::Instant;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
-use crate::app::App;
 
 pub mod app;
 pub mod types;
@@ -15,15 +14,11 @@ pub enum NitronTask {
     CreateObject {
         vertices: Vec<Vert>,
         indices: Vec<u32>,
-        position: Vec3,
-        rotation: Quat,
-        scale: Vec3,
+        transformation: Transformation
     },
     CreateObjectFromFile {
         path: String,
-        position: Vec3,
-        rotation: Quat,
-        scale: Vec3,
+        transformation: Transformation
     }
 }
 
@@ -86,11 +81,11 @@ impl ApplicationHandler for Nitron {
                             NitronTask::UpdateObject(object) => {
                                 self.app.update_object(object);
                             }
-                            NitronTask::CreateObject { vertices, indices, position, rotation, scale } => {
-                                self.app.create_object(vertices, indices, position, rotation, scale);
+                            NitronTask::CreateObject { vertices, indices, transformation} => {
+                                self.app.create_object(vertices, indices, transformation);
                             }
-                            NitronTask::CreateObjectFromFile { path, position, rotation, scale } => {
-                                self.app.create_objects_from_file(&path, position, rotation, scale);
+                            NitronTask::CreateObjectFromFile { path, transformation } => {
+                                self.app.create_objects_from_file(&path, transformation);
                             }
                         }
                     }

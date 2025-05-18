@@ -6,29 +6,52 @@ pub struct Vert {
     pub normal: Vec3,
 }
 
-#[derive(Clone, Copy)]
-pub struct Object {
-    pub(crate) id: usize,
+#[derive(Clone, Copy, Debug)]
+pub struct Transformation {
     pub position: Vec3,
     pub rotation: Quat,
     pub scale: Vec3
 }
 
-impl Object {
-    pub(crate) fn new(id: usize, position: Vec3, rotation: Quat, scale: Vec3) -> Self {
+impl Transformation {
+    pub fn new(position: Vec3, rotation: Quat, scale: Vec3) -> Self {
         Self {
-            id,
             position,
             rotation,
-            scale,
+            scale
         }
     }
 
-    pub(crate) fn generate_transform(position: Vec3, rotation: Quat, scale: Vec3) -> Mat4 {
-        Mat4::from_scale_rotation_translation(scale, rotation, position)
+    pub fn new_identity() -> Self {
+        Self::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
     }
 
-    pub(crate) fn get_transform(&self) -> Mat4 {
-        Self::generate_transform(self.position, self.rotation, self.scale)
+    pub(crate) fn to_matrix(self) -> Mat4 {
+        Mat4::from_scale_rotation_translation(self.scale, self.rotation, self.position)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Object {
+    pub(crate) id: usize,
+    pub transformation: Transformation
+}
+
+impl Object {
+    /*
+    pub(crate) fn new(id: usize, position: Vec3, rotation: Quat, scale: Vec3) -> Self {
+        let transformation = Transformation::new(position, rotation, scale);
+        Self {
+            id,
+            transformation
+        }
+    }
+    */
+
+    pub(crate) fn new_from_transformation(id: usize, transformation: Transformation) -> Self {
+        Self {
+            id,
+            transformation
+        }
     }
 }

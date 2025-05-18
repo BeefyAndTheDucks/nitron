@@ -1,5 +1,5 @@
-use crate::types::Object;
-use glam::{Quat, Vec3};
+use crate::types::{Object, Transformation};
+use glam::Vec3;
 use renderer::renderer::Renderer;
 use renderer::types::Vert;
 use winit::event::WindowEvent;
@@ -23,7 +23,7 @@ impl App {
         )
     }
 
-    pub fn create_objects_from_file(&mut self, filepath: &str, position: Vec3, rotation: Quat, scale: Vec3) -> Vec<Object> {
+    pub fn create_objects_from_file(&mut self, filepath: &str, transformation: Transformation) -> Vec<Object> {
         let model = tobj::load_obj(filepath, &tobj::GPU_LOAD_OPTIONS);
         assert!(model.is_ok());
 
@@ -34,7 +34,7 @@ impl App {
         for (i, m) in models.iter().enumerate() {
             let mesh = &m.mesh;
 
-            println!("model[{}].name = \'{}\'", i, m.name);
+            println!("Name of #{} is \'{}\'", i, m.name);
 
             let mut vertices = Vec::new();
             for vertex_idx in 0..mesh.positions.len() / 3 {
@@ -44,14 +44,14 @@ impl App {
                 });
             }
 
-            let obj = self.create_object(vertices, mesh.clone().indices, position, rotation, scale);
+            let obj = self.create_object(vertices, mesh.clone().indices, transformation);
             objects.push(obj);
         }
 
         objects
     }
 
-    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, position: Vec3, rotation: Quat, scale: Vec3) -> Object {
+    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transformation: Transformation) -> Object {
         let mut renderer_vertices = Vec::new();
         for vert in vertices.iter() {
             renderer_vertices.push(Vert {
@@ -60,15 +60,13 @@ impl App {
             })
         }
 
-        let transform = Object::generate_transform(position, rotation, scale);
+        let id = self.renderer.create_object(renderer_vertices, indices, transformation.clone().to_matrix());
 
-        let id = self.renderer.create_object(renderer_vertices, indices, transform.clone());
-
-        Object::new(id, position, rotation, scale)
+        Object::new_from_transformation(id, transformation)
     }
 
     pub fn update_object(&mut self, object: Object) {
-        self.renderer.update_object(object.id, object.get_transform());
+        self.renderer.update_object(object.id, object.transformation.to_matrix());
     }
 
     pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
