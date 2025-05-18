@@ -6,6 +6,7 @@ pub struct Vert {
     pub normal: Vec3,
 }
 
+#[derive(Clone, Copy)]
 pub struct Object {
     pub(crate) id: usize,
     pub transform: Mat4,

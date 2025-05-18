@@ -353,11 +353,11 @@ impl Renderer {
                         100.0,
                     );
                     let view = Mat4::look_to_rh(
-                        Vec3::new(0.0, 0.0, 1.0),
+                        Vec3::new(0.0, 0.0, 10.0),
                         Vec3::new(0.0, 0.0, -1.0),
                         Vec3::new(0.0, -1.0, 0.0),
                     );
-                    let scale = Mat4::from_scale(Vec3::splat(0.01));
+                    let scale = Mat4::from_scale(Vec3::splat(1.0));
 
                     let mut buffers = Vec::new();
 
