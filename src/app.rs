@@ -23,6 +23,34 @@ impl App {
         )
     }
 
+    pub fn create_objects_from_file(&mut self, filepath: &str, position: Vec3, rotation: Quat, scale: Vec3) -> Vec<Object> {
+        let model = tobj::load_obj(filepath, &tobj::GPU_LOAD_OPTIONS);
+        assert!(model.is_ok());
+
+        let (models, _materials) = model.expect("Failed to load OBJ file");
+
+        let mut objects = Vec::new();
+
+        for (i, m) in models.iter().enumerate() {
+            let mesh = &m.mesh;
+
+            println!("model[{}].name = \'{}\'", i, m.name);
+
+            let mut vertices = Vec::new();
+            for vertex_idx in 0..mesh.positions.len() / 3 {
+                vertices.push(crate::types::Vert {
+                    position: Vec3::from_array([mesh.positions[vertex_idx * 3], mesh.positions[vertex_idx * 3 + 1], mesh.positions[vertex_idx * 3 + 2]]),
+                    normal: Vec3::from_array([mesh.normals[vertex_idx * 3], mesh.normals[vertex_idx * 3 + 1], mesh.normals[vertex_idx * 3 + 2]]),
+                });
+            }
+
+            let obj = self.create_object(vertices, mesh.clone().indices, position, rotation, scale);
+            objects.push(obj);
+        }
+
+        objects
+    }
+
     pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, position: Vec3, rotation: Quat, scale: Vec3) -> Object {
         let mut renderer_vertices = Vec::new();
         for vert in vertices.iter() {

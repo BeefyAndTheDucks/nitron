@@ -7,6 +7,7 @@ edition = "2024"
 renderer = { path = "renderer" }
 winit = "0.30.10"
 glam = "0.30.3"
+tobj = "4.0.3"
 
 [profile.dev]
 opt-level = 1
