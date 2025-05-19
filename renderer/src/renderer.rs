@@ -2,7 +2,7 @@ use crate::rendered_object::RenderedObject;
 use crate::shaders::{frag, vert};
 use crate::types::Vert;
 use egui_winit_vulkano::{Gui, GuiConfig};
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Quat, Vec3};
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
@@ -47,6 +47,7 @@ pub struct Renderer {
     uniform_buffer_allocator: SubbufferAllocator,
     window_attribs: WindowAttributes,
     objects: Vec<RenderedObject>,
+    view_matrix: Mat4,
     rcx: Option<RenderContext>,
     gui: Option<Gui>,
 }
@@ -107,6 +108,14 @@ impl Renderer {
         if let Some(object) = self.objects.get_mut(id) {
             object.transform = transform;
         }
+    }
+
+    pub fn move_camera(&mut self, position: Vec3, rotation: Quat, scale: Vec3 ) {
+        self.view_matrix = Mat4::look_to_rh(
+            position,
+            rotation * Vec3::NEG_Z,
+            Vec3::NEG_Y,
+        ) * Mat4::from_scale(scale);
     }
 
     pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
@@ -205,6 +214,7 @@ impl Renderer {
             uniform_buffer_allocator,
             window_attribs,
             objects: Vec::new(),
+            view_matrix: Mat4::look_to_rh(Vec3::Z * 10.0, Vec3::NEG_Z, Vec3::NEG_Y),
             rcx: None,
             gui: None
         }
@@ -387,11 +397,6 @@ impl Renderer {
                         0.01,
                         100.0,
                     );
-                    let view = Mat4::look_to_rh(
-                        Vec3::new(0.0, 0.0, 10.0),
-                        Vec3::new(0.0, 0.0, -1.0),
-                        Vec3::new(0.0, -1.0, 0.0),
-                    );
                     let scale = Mat4::from_scale(Vec3::splat(1.0));
 
                     let mut buffers = Vec::new();
@@ -399,7 +404,7 @@ impl Renderer {
                     for obj in &self.objects {
                         let uniform_data = vert::Data {
                             world: obj.transform.to_cols_array_2d(),
-                            view: (view * scale).to_cols_array_2d(),
+                            view: (self.view_matrix * scale).to_cols_array_2d(),
                             proj: proj.to_cols_array_2d(),
                         };
 

@@ -20,7 +20,9 @@ pub enum NitronTask {
     CreateObjectFromFile {
         path: String,
         transformation: Transformation
-    }
+    },
+
+    MoveCamera(Transformation)
 }
 
 pub trait NitronApplication {
@@ -90,6 +92,10 @@ impl ApplicationHandler for Nitron {
                             }
                             NitronTask::CreateObjectFromFile { path, transformation } => {
                                 self.app.create_objects_from_file(&path, transformation);
+                            }
+
+                            NitronTask::MoveCamera(new_transformation) => {
+                                self.app.renderer.move_camera(new_transformation.position, new_transformation.rotation, new_transformation.scale);
                             }
                         }
                     }

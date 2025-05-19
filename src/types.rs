@@ -1,4 +1,4 @@
-use glam::{Mat4, Quat, Vec3};
+use glam::{EulerRot, Mat4, Quat, Vec3};
 
 #[derive(Clone)]
 pub struct Vert {
@@ -11,6 +11,33 @@ pub struct Transformation {
     pub position: Vec3,
     pub rotation: Quat,
     pub scale: Vec3
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EulerTransformation {
+    pub position: Vec3,
+    pub rotation: Vec3,
+    pub scale: Vec3
+}
+
+impl EulerTransformation {
+    pub fn new(position: Vec3, rotation: Vec3, scale: Vec3) -> Self {
+        Self {
+            position,
+            rotation,
+            scale
+        }
+    }
+
+    pub fn new_identity() -> Self {
+        Self::new(Vec3::ZERO, Vec3::ZERO, Vec3::ONE)
+    }
+}
+
+impl Into<Transformation> for EulerTransformation {
+    fn into(self) -> Transformation {
+        Transformation::new(self.position, Quat::from_euler(EulerRot::XYZ, self.rotation.x.to_radians(), self.rotation.y.to_radians(), self.rotation.z.to_radians()), self.scale)
+    }
 }
 
 impl Transformation {
