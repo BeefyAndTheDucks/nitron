@@ -293,7 +293,7 @@ impl Renderer {
             surface.clone(),
             self.queue.clone(),
             Subpass::from(render_pass.clone(), 1).unwrap(),
-            Format::R8G8B8A8_UNORM,
+            swapchain.image_format(),
             GuiConfig::default(),
         ));
 
