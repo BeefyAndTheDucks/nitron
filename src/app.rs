@@ -74,8 +74,8 @@ impl App {
         self.renderer.resumed(event_loop)
     }
 
-    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) {
-        self.renderer.window_event(event_loop, window_id, event.clone(), layout_function);
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) -> bool {
+        self.renderer.window_event(event_loop, window_id, event.clone(), layout_function)
     }
 
     pub fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {

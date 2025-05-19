@@ -330,20 +330,16 @@ impl Renderer {
         });
     }
 
-    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) {
-        if let Some(gui) = &mut self.gui {
-            if event == WindowEvent::RedrawRequested {
-                gui.immediate_ui(layout_function);
-            }
+    // returns true if consumed
+    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) -> bool {
+        let gui = self.gui.as_mut().unwrap();
 
-            let consumed = gui.update(&event);
+        if event == WindowEvent::RedrawRequested {
+            gui.immediate_ui(layout_function);
+        }
 
-            if consumed {
-                if let Some(rcx) = &self.rcx {
-                    rcx.window.request_redraw();
-                }
-                return;
-            }
+        if gui.update(&event) {
+            return true;
         }
         
         let rcx = self.rcx.as_mut().unwrap();
@@ -361,7 +357,7 @@ impl Renderer {
                 let window_size = rcx.window.inner_size();
 
                 if window_size.width == 0 || window_size.height == 0 {
-                    return;
+                    return false;
                 }
 
                 rcx.previous_frame_end.as_mut().unwrap().cleanup_finished();
@@ -443,7 +439,7 @@ impl Renderer {
                     Ok(r) => r,
                     Err(VulkanError::OutOfDate) => {
                         rcx.recreate_swapchain = true;
-                        return;
+                        return false;
                     }
                     Err(e) => panic!("failed to acquire next image: {e}"),
                 };
@@ -569,6 +565,8 @@ impl Renderer {
             }
             _ => {}
         }
+
+        false
     }
 
     pub fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {

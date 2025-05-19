@@ -29,6 +29,10 @@ impl EulerTransformation {
         }
     }
 
+    pub fn as_transformation(self) -> Transformation {
+        Transformation::new(self.position, Quat::from_euler(EulerRot::XYZ, self.rotation.x.to_radians(), self.rotation.y.to_radians(), self.rotation.z.to_radians()), self.scale)
+    }
+
     pub fn new_identity() -> Self {
         Self::new(Vec3::ZERO, Vec3::ZERO, Vec3::ONE)
     }
@@ -36,7 +40,7 @@ impl EulerTransformation {
 
 impl Into<Transformation> for EulerTransformation {
     fn into(self) -> Transformation {
-        Transformation::new(self.position, Quat::from_euler(EulerRot::XYZ, self.rotation.x.to_radians(), self.rotation.y.to_radians(), self.rotation.z.to_radians()), self.scale)
+        self.as_transformation()
     }
 }
 
@@ -51,6 +55,18 @@ impl Transformation {
 
     pub fn new_identity() -> Self {
         Self::new(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
+    }
+
+    pub fn forwards(self) -> Vec3 {
+        self.rotation * Vec3::NEG_Z
+    }
+
+    pub fn right(self) -> Vec3 {
+        self.rotation * Vec3::NEG_X
+    }
+
+    pub fn up(self) -> Vec3 {
+        self.rotation * Vec3::Y
     }
 
     pub(crate) fn to_matrix(self) -> Mat4 {
