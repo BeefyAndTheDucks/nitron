@@ -346,16 +346,7 @@ impl Renderer {
                 rcx.recreate_swapchain = true;
             }
             WindowEvent::RedrawRequested => {
-                let gui = self.gui.as_mut().unwrap();
-
-                gui.begin_frame();
-
-                let ctx = gui.context();
-
-                egui_winit_vulkano::egui::Window::new("Test")
-                    .show(&ctx, |ui| {
-                        ui.label("Hello world!");
-                    });
+                //let gui = self.gui.as_mut().unwrap();
 
                 let window_size = rcx.window.inner_size();
 
