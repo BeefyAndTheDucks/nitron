@@ -21,7 +21,7 @@ use vulkano::pipeline::graphics::color_blend::{ColorBlendAttachmentState, ColorB
 use vulkano::pipeline::graphics::depth_stencil::{DepthState, DepthStencilState};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::multisample::MultisampleState;
-use vulkano::pipeline::graphics::rasterization::RasterizationState;
+use vulkano::pipeline::graphics::rasterization::{CullMode, FrontFace, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::{Vertex, VertexDefinition};
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
@@ -655,7 +655,11 @@ fn regen_framebuffer(
                         .collect(),
                     ..Default::default()
                 }),
-                rasterization_state: Some(RasterizationState::default()),
+                rasterization_state: Some(RasterizationState {
+                    cull_mode: CullMode::Back,
+                    front_face: FrontFace::Clockwise,
+                    ..Default::default()
+                }),
                 depth_stencil_state: Some(DepthStencilState {
                     depth: Some(DepthState::simple()),
                     ..Default::default()
