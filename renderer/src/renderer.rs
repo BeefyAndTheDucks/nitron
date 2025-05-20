@@ -90,23 +90,25 @@ where
 }
 
 impl Renderer {
-    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4) -> usize {
+    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4, visible: bool) -> usize {
         let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, vertices).expect("Failed to create vertex buffer");
         let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, indices).expect("Failed to create index buffer");
         
         let obj = RenderedObject {
             transform,
             vertex_buffer,
-            index_buffer
+            index_buffer,
+            visible
         };
 
         self.objects.push(obj);
         self.objects.len() - 1
     }
 
-    pub fn update_object(&mut self, id: usize, transform: Mat4) {
+    pub fn update_object(&mut self, id: usize, transform: Mat4, visible: bool) {
         if let Some(object) = self.objects.get_mut(id) {
             object.transform = transform;
+            object.visible = visible;
         }
     }
 
@@ -398,6 +400,10 @@ impl Renderer {
                     let mut buffers = Vec::new();
 
                     for obj in &self.objects {
+                        if !obj.visible {
+                            continue;
+                        }
+
                         let uniform_data = vert::Data {
                             world: obj.transform.to_cols_array_2d(),
                             view: (self.view_matrix * scale).to_cols_array_2d(),
@@ -418,7 +424,11 @@ impl Renderer {
 
                 let mut idx = 0;
 
-                for _obj in &self.objects {
+                for obj in &self.objects {
+                    if !obj.visible {
+                        continue;
+                    }
+
                     descriptor_sets.push(DescriptorSet::new(
                         self.descriptor_set_allocator.clone(),
                         layout.clone(),
@@ -492,6 +502,10 @@ impl Renderer {
 
                 idx = 0;
                 for obj in &self.objects {
+                    if !obj.visible {
+                        continue;
+                    }
+
                     objects_cmd_buffer_builder
                         .bind_descriptor_sets(
                             PipelineBindPoint::Graphics,

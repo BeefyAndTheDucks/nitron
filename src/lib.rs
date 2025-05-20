@@ -15,11 +15,13 @@ pub enum NitronTask {
     CreateObject {
         vertices: Vec<Vert>,
         indices: Vec<u32>,
-        transformation: Transformation
+        transformation: Transformation,
+        visible: bool,
     },
     CreateObjectFromFile {
         path: String,
-        transformation: Transformation
+        transformation: Transformation,
+        visible: bool,
     },
 
     MoveCamera(Transformation)
@@ -90,11 +92,11 @@ impl ApplicationHandler for Nitron {
                             NitronTask::UpdateObject(object) => {
                                 self.app.update_object(object);
                             }
-                            NitronTask::CreateObject { vertices, indices, transformation} => {
-                                self.app.create_object(vertices, indices, transformation);
+                            NitronTask::CreateObject { vertices, indices, transformation, visible} => {
+                                self.app.create_object(vertices, indices, transformation, visible);
                             }
-                            NitronTask::CreateObjectFromFile { path, transformation } => {
-                                self.app.create_objects_from_file(&path, transformation);
+                            NitronTask::CreateObjectFromFile { path, transformation, visible } => {
+                                self.app.create_objects_from_file(&path, transformation, visible);
                             }
 
                             NitronTask::MoveCamera(new_transformation) => {

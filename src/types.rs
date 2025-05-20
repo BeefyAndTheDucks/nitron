@@ -77,24 +77,16 @@ impl Transformation {
 #[derive(Clone, Copy)]
 pub struct Object {
     pub(crate) id: usize,
-    pub transformation: Transformation
+    pub transformation: Transformation,
+    pub visible: bool,
 }
 
 impl Object {
-    /*
-    pub(crate) fn new(id: usize, position: Vec3, rotation: Quat, scale: Vec3) -> Self {
-        let transformation = Transformation::new(position, rotation, scale);
+    pub(crate) fn new_from_transformation(id: usize, transformation: Transformation, visible: bool) -> Self {
         Self {
             id,
-            transformation
-        }
-    }
-    */
-
-    pub(crate) fn new_from_transformation(id: usize, transformation: Transformation) -> Self {
-        Self {
-            id,
-            transformation
+            transformation,
+            visible
         }
     }
 }

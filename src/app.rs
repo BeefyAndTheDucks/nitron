@@ -24,7 +24,7 @@ impl App {
         )
     }
 
-    pub fn create_objects_from_file(&mut self, filepath: &str, transformation: Transformation) -> Vec<Object> {
+    pub fn create_objects_from_file(&mut self, filepath: &str, transformation: Transformation, visible: bool) -> Vec<Object> {
         let model = tobj::load_obj(filepath, &tobj::GPU_LOAD_OPTIONS);
         assert!(model.is_ok());
 
@@ -45,14 +45,14 @@ impl App {
                 });
             }
 
-            let obj = self.create_object(vertices, mesh.clone().indices, transformation);
+            let obj = self.create_object(vertices, mesh.clone().indices, transformation, visible);
             objects.push(obj);
         }
 
         objects
     }
 
-    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transformation: Transformation) -> Object {
+    pub fn create_object(&mut self, vertices: Vec<crate::types::Vert>, indices: Vec<u32>, transformation: Transformation, visible: bool) -> Object {
         let mut renderer_vertices = Vec::new();
         for vert in vertices.iter() {
             renderer_vertices.push(Vert {
@@ -61,13 +61,13 @@ impl App {
             })
         }
 
-        let id = self.renderer.create_object(renderer_vertices, indices, transformation.clone().to_matrix());
+        let id = self.renderer.create_object(renderer_vertices, indices, transformation.clone().to_matrix(), visible);
 
-        Object::new_from_transformation(id, transformation)
+        Object::new_from_transformation(id, transformation, visible)
     }
 
     pub fn update_object(&mut self, object: Object) {
-        self.renderer.update_object(object.id, object.transformation.to_matrix());
+        self.renderer.update_object(object.id, object.transformation.to_matrix(), object.visible);
     }
 
     pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
