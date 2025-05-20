@@ -34,6 +34,14 @@ impl EulerTransformation {
         Transformation::new(self.position, Quat::from_euler(EulerRot::XYZ, self.rotation.x.to_radians(), self.rotation.y.to_radians(), self.rotation.z.to_radians()), self.scale)
     }
 
+    pub fn from_transformation(transformation: Transformation) -> Self {
+        Self {
+            position: transformation.position,
+            rotation: Vec3::from(transformation.rotation.to_euler(EulerRot::XYZ)),
+            scale: transformation.scale
+        }
+    } 
+
     pub fn new_identity() -> Self {
         Self::new(Vec3::ZERO, Vec3::ZERO, Vec3::ONE)
     }
@@ -42,6 +50,12 @@ impl EulerTransformation {
 impl Into<Transformation> for EulerTransformation {
     fn into(self) -> Transformation {
         self.as_transformation()
+    }
+}
+
+impl From<Transformation> for EulerTransformation {
+    fn from(value: Transformation) -> Self {
+        Self::from_transformation(value)
     }
 }
 
