@@ -1,11 +1,13 @@
+use std::io::Cursor;
 use crate::app::App;
 use crate::types::{Object, Transformation, Vert};
 use egui_winit_vulkano::Gui;
 use std::time::Instant;
+use image::ImageReader;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::window::{Window, WindowId};
+use winit::window::{Icon, Window, WindowId};
 
 pub mod app;
 pub mod types;
@@ -33,6 +35,22 @@ pub trait NitronApplication {
     fn create_ui(&mut self, gui: &mut Gui);
 }
 
+const DEFAULT_ICON_PNG: &[u8] = include_bytes!("../assets/logo.png");
+
+fn load_icon() -> Icon {
+    let image = ImageReader::new(Cursor::new(DEFAULT_ICON_PNG))
+        .with_guessed_format()
+        .expect("Cursor I/O never fails")
+        .decode()
+        .expect("Failed to decode image");
+
+    let image = image.to_rgba8(); // RGBA8 format
+    let (width, height) = image.dimensions();
+    let rgba = image.into_raw(); // raw RGBA bytes
+
+    Icon::from_rgba(rgba, width, height).expect("Failed to create icon")
+}
+
 pub struct Nitron {
     pub app: App,
     application: Option<Box<dyn NitronApplication>>,
@@ -42,7 +60,8 @@ pub struct Nitron {
 impl Nitron {
     pub fn create(window_title: String) -> (Self, EventLoop<()>) {
         let attributes = Window::default_attributes()
-            .with_title(window_title);
+            .with_title(window_title)
+            .with_window_icon(Some(load_icon()));
         let (app, event_loop) = App::new(attributes);
 
         (

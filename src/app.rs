@@ -1,5 +1,5 @@
-use egui_winit_vulkano::Gui;
 use crate::types::{Object, Transformation};
+use egui_winit_vulkano::Gui;
 use glam::Vec3;
 use renderer::renderer::Renderer;
 use renderer::types::Vert;
