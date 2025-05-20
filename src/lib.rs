@@ -3,7 +3,7 @@ use crate::types::{Object, Transformation, Vert};
 use egui_winit_vulkano::Gui;
 use std::time::Instant;
 use winit::application::ApplicationHandler;
-use winit::event::{DeviceEvent, DeviceId, WindowEvent};
+use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 
@@ -28,7 +28,6 @@ pub enum NitronTask {
 pub trait NitronApplication {
     fn update(&mut self, delta_time: f32) -> Vec<NitronTask>;
     fn on_window_event(&mut self, event: &WindowEvent);
-    fn on_device_event(&mut self, event: &DeviceEvent, device_id: DeviceId);
     fn create_ui(&mut self, gui: &mut Gui);
 }
 
@@ -110,12 +109,6 @@ impl ApplicationHandler for Nitron {
                     application.on_window_event(&event);
                 }
             }
-        }
-    }
-
-    fn device_event(&mut self, _event_loop: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
-        if let Some(application) = &mut self.application {
-            application.on_device_event(&event, device_id);
         }
     }
 
