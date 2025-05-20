@@ -7,7 +7,7 @@ use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferInheritanceInfo, CommandBufferUsage, RenderPassBeginInfo, SubpassBeginInfo, SubpassContents};
+use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferInheritanceInfo, CommandBufferUsage, CopyBufferToImageInfo, RenderPassBeginInfo, SubpassBeginInfo, SubpassContents};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{DescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDeviceType;
@@ -32,6 +32,7 @@ use vulkano::shader::EntryPoint;
 use vulkano::swapchain::{acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo};
 use vulkano::sync::GpuFuture;
 use vulkano::{sync, Validated, VulkanError, VulkanLibrary};
+use vulkano::image::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode};
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -47,7 +48,9 @@ pub struct Renderer {
     uniform_buffer_allocator: SubbufferAllocator,
     window_attribs: WindowAttributes,
     objects: Vec<RenderedObject>,
+    textures: Vec<Arc<ImageView>>,
     view_matrix: Mat4,
+    sampler: Arc<Sampler>,
     rcx: Option<RenderContext>,
     gui: Option<Gui>,
 }
@@ -90,7 +93,60 @@ where
 }
 
 impl Renderer {
-    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4, visible: bool) -> usize {
+    pub fn create_texture(&mut self, width: u32, height: u32, pixels: &[u8]) -> usize {
+        let image = Image::new(
+            self.memory_allocator.clone(),
+            ImageCreateInfo {
+                image_type: ImageType::Dim2d,
+                format: Format::R8G8B8A8_SRGB,
+                extent: [width, height, 1],
+                usage: ImageUsage::TRANSFER_DST | ImageUsage::SAMPLED,
+                ..Default::default()
+            },
+            AllocationCreateInfo::default(),
+        ).unwrap();
+
+        let staging_buffer = Buffer::from_iter(
+            self.memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::TRANSFER_SRC,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            pixels.iter().cloned(),
+        ).unwrap();
+
+        let mut builder = AutoCommandBufferBuilder::primary(
+            self.command_buffer_allocator.clone(),
+            self.queue.queue_family_index(),
+            CommandBufferUsage::OneTimeSubmit,
+        ).unwrap();
+
+        builder
+            .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                staging_buffer,
+                image.clone(),
+            ))
+            .unwrap();
+
+        let command_buffer = builder.build().unwrap();
+
+        sync::now(self.device.clone())
+            .then_execute(self.queue.clone(), command_buffer)
+            .unwrap()
+            .then_signal_fence_and_flush()
+            .unwrap()
+            .wait(None)
+            .unwrap();
+
+        self.textures.push(ImageView::new_default(image).unwrap());
+        self.textures.len() - 1
+    }
+
+    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4, visible: bool, texture: Option<usize>) -> usize {
         let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, vertices).expect("Failed to create vertex buffer");
         let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, indices).expect("Failed to create index buffer");
         
@@ -98,7 +154,8 @@ impl Renderer {
             transform,
             vertex_buffer,
             index_buffer,
-            visible
+            visible,
+            texture: texture.map(|i| self.textures[i].clone()),
         };
 
         self.objects.push(obj);
@@ -206,6 +263,17 @@ impl Renderer {
             },
         );
 
+        let sampler = Sampler::new(
+            device.clone(),
+            SamplerCreateInfo {
+                mag_filter: Filter::Nearest,
+                min_filter: Filter::Nearest,
+                mipmap_mode: SamplerMipmapMode::Linear,
+                address_mode: [SamplerAddressMode::Repeat; 3],
+                ..Default::default()
+            }
+        ).unwrap();
+
         Renderer {
             instance,
             device,
@@ -216,7 +284,9 @@ impl Renderer {
             uniform_buffer_allocator,
             window_attribs,
             objects: Vec::new(),
+            textures: Vec::new(),
             view_matrix: Mat4::look_to_rh(Vec3::Z * 10.0, Vec3::NEG_Z, Vec3::NEG_Y),
+            sampler,
             rcx: None,
             gui: None
         }
@@ -429,10 +499,18 @@ impl Renderer {
                         continue;
                     }
 
+                    let mut descriptor_writes = Vec::new();
+
+                    descriptor_writes.push(WriteDescriptorSet::buffer(descriptor_writes.len() as u32, uniform_buffers[idx].clone()));
+
+                    if let Some(tex) = obj.texture.clone() {
+                        descriptor_writes.push(WriteDescriptorSet::image_view_sampler(descriptor_writes.len() as u32, tex, self.sampler.clone()));
+                    }
+
                     descriptor_sets.push(DescriptorSet::new(
                         self.descriptor_set_allocator.clone(),
                         layout.clone(),
-                        [WriteDescriptorSet::buffer(0, uniform_buffers[idx].clone())],
+                        descriptor_writes,
                         [],
                     )
                         .unwrap());

@@ -1,9 +1,10 @@
-use glam::{EulerRot, Mat4, Quat, Vec3};
+use glam::{EulerRot, Mat4, Quat, Vec2, Vec3};
 
 #[derive(Clone)]
 pub struct Vert {
     pub position: Vec3,
     pub normal: Vec3,
+    pub tex_coord: Vec2,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -87,6 +88,19 @@ impl Object {
             id,
             transformation,
             visible
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Texture {
+    pub(crate) id: usize,
+}
+
+impl Texture {
+    pub(crate) fn new(id: usize) -> Self {
+        Self {
+            id
         }
     }
 }

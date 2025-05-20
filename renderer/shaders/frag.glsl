@@ -1,14 +1,17 @@
-#version 460
+#version 450
 
-layout(location = 0) in vec3 v_normal;
+layout(location = 0) in vec2 frag_tex_coords;
+layout(location = 1) in vec3 frag_normal;
+
 layout(location = 0) out vec4 f_color;
 
-const vec3 LIGHT = vec3(0.0, 0.0, 1.0);
+layout(set = 0, binding = 1) uniform sampler2D tex_sampler;
 
 void main() {
-    float brightness = abs(dot(normalize(v_normal), normalize(LIGHT)));
-    vec3 dark_color = vec3(0.3, 0.0, 0.0);
-    vec3 regular_color = vec3(1.0, 0.0, 0.0);
-
-    f_color = vec4(mix(dark_color, regular_color, brightness), 1.0);
+    vec4 tex_color = texture(tex_sampler, frag_tex_coords);
+    vec3 light_dir = normalize(vec3(1.0, 1.0, 1.0));
+    float diff = max(dot(normalize(frag_normal), light_dir), 0.0);
+    vec3 diffuse = diff * vec3(1.0);
+    vec3 ambient = vec3(0.1);
+    f_color = vec4((ambient + diffuse) * tex_color.rgb, tex_color.a);
 }

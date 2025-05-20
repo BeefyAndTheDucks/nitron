@@ -1,6 +1,6 @@
 use std::io::Cursor;
 use crate::app::App;
-use crate::types::{Object, Transformation, Vert};
+use crate::types::{Object, Texture, Transformation, Vert};
 use egui_winit_vulkano::Gui;
 use std::time::Instant;
 use image::ImageReader;
@@ -19,11 +19,13 @@ pub enum NitronTask {
         indices: Vec<u32>,
         transformation: Transformation,
         visible: bool,
+        texture: Option<Texture>,
     },
     CreateObjectFromFile {
         path: String,
         transformation: Transformation,
         visible: bool,
+        texture: Option<Texture>,
     },
 
     MoveCamera(Transformation)
@@ -111,11 +113,11 @@ impl ApplicationHandler for Nitron {
                             NitronTask::UpdateObject(object) => {
                                 self.app.update_object(object);
                             }
-                            NitronTask::CreateObject { vertices, indices, transformation, visible} => {
-                                self.app.create_object(vertices, indices, transformation, visible);
+                            NitronTask::CreateObject { vertices, indices, transformation, visible, texture} => {
+                                self.app.create_object(vertices, indices, transformation, visible, texture);
                             }
-                            NitronTask::CreateObjectFromFile { path, transformation, visible } => {
-                                self.app.create_objects_from_file(&path, transformation, visible);
+                            NitronTask::CreateObjectFromFile { path, transformation, visible, texture } => {
+                                self.app.create_objects_from_file(&path, transformation, visible, texture);
                             }
 
                             NitronTask::MoveCamera(new_transformation) => {
