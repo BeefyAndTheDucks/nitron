@@ -169,6 +169,10 @@ impl Renderer {
         }
     }
 
+    pub fn delete_object(&mut self, id: usize) {
+        self.objects.remove(id);
+    }
+
     pub fn move_camera(&mut self, position: Vec3, rotation: Quat, scale: Vec3 ) {
         self.view_matrix = Mat4::look_to_rh(
             position,

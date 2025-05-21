@@ -84,6 +84,10 @@ impl App {
         self.renderer.update_object(object.id, object.transformation.to_matrix(), object.visible);
     }
 
+    pub fn delete_object(&mut self, object: Object) {
+        self.renderer.delete_object(object.id);
+    }
+
     pub fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.renderer.resumed(event_loop)
     }

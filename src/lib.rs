@@ -14,6 +14,7 @@ pub mod types;
 
 pub enum NitronTask {
     UpdateObject(Object),
+    DeleteObject(Object),
     CreateObject {
         vertices: Vec<Vert>,
         indices: Vec<u32>,
@@ -113,6 +114,9 @@ impl ApplicationHandler for Nitron {
                         match task {
                             NitronTask::UpdateObject(object) => {
                                 self.app.update_object(object);
+                            }
+                            NitronTask::DeleteObject(object) => {
+                                self.app.delete_object(object);
                             }
                             NitronTask::CreateObject { vertices, indices, transformation, visible, texture} => {
                                 let object = self.app.create_object(vertices, indices, transformation, visible, texture);
