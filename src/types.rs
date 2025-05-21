@@ -35,9 +35,12 @@ impl EulerTransformation {
     }
 
     pub fn from_transformation(transformation: Transformation) -> Self {
+        let rot_radians = transformation.rotation.to_euler(EulerRot::XYZ);
+        let rot_degrees = Vec3::new(rot_radians.0.to_degrees(), rot_radians.1.to_degrees(), rot_radians.2.to_degrees());
+
         Self {
             position: transformation.position,
-            rotation: Vec3::from(transformation.rotation.to_euler(EulerRot::XYZ)),
+            rotation: rot_degrees,
             scale: transformation.scale
         }
     } 
