@@ -1195,6 +1195,7 @@ version = "0.1.0"
 dependencies = [
  "egui_winit_vulkano",
  "glam",
+ "image",
  "renderer",
  "tobj",
  "winit",

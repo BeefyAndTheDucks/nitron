@@ -105,7 +105,7 @@ impl App {
         let id = self.renderer.create_object(
             renderer_vertices,
             indices,
-            transformation.clone().to_matrix(),
+            transformation.to_matrix(),
             visible,
             texture.map(|x| x.id),
         );

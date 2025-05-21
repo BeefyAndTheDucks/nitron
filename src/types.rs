@@ -63,9 +63,9 @@ impl EulerTransformation {
     }
 }
 
-impl Into<Transformation> for EulerTransformation {
-    fn into(self) -> Transformation {
-        self.as_transformation()
+impl From<EulerTransformation> for Transformation {
+    fn from(value: EulerTransformation) -> Self {
+        value.as_transformation()
     }
 }
 
