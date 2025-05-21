@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use crate::types::Vert;
 use glam::Mat4;
+use std::sync::Arc;
 use vulkano::buffer::Subbuffer;
 use vulkano::image::view::ImageView;
-use crate::types::Vert;
 
 pub struct RenderedObject {
     pub transform: Mat4,

@@ -29,7 +29,7 @@ pub enum NitronTask {
         texture: Option<Texture>,
     },
 
-    MoveCamera(Transformation)
+    MoveCamera(Transformation),
 }
 
 pub trait NitronApplication {
@@ -74,7 +74,7 @@ impl Nitron {
                 application: None,
                 last_frame: Instant::now(),
             },
-            event_loop
+            event_loop,
         )
     }
 
@@ -92,11 +92,18 @@ impl ApplicationHandler for Nitron {
         self.app.resumed(event_loop);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
         if let Some(application) = &mut self.application {
-            if self.app.window_event(event_loop, window_id, event.clone(), |gui| {
-                application.create_ui(gui);
-            })
+            if self
+                .app
+                .window_event(event_loop, window_id, event.clone(), |gui| {
+                    application.create_ui(gui);
+                })
             {
                 return;
             }
@@ -118,12 +125,34 @@ impl ApplicationHandler for Nitron {
                             NitronTask::DeleteObject(object) => {
                                 self.app.delete_object(object);
                             }
-                            NitronTask::CreateObject { vertices, indices, transformation, visible, texture} => {
-                                let object = self.app.create_object(vertices, indices, transformation, visible, texture);
+                            NitronTask::CreateObject {
+                                vertices,
+                                indices,
+                                transformation,
+                                visible,
+                                texture,
+                            } => {
+                                let object = self.app.create_object(
+                                    vertices,
+                                    indices,
+                                    transformation,
+                                    visible,
+                                    texture,
+                                );
                                 application.object_created(object);
                             }
-                            NitronTask::CreateObjectFromFile { path, transformation, visible, texture} => {
-                                let objects = self.app.create_objects_from_file(&path, transformation, visible, texture);
+                            NitronTask::CreateObjectFromFile {
+                                path,
+                                transformation,
+                                visible,
+                                texture,
+                            } => {
+                                let objects = self.app.create_objects_from_file(
+                                    &path,
+                                    transformation,
+                                    visible,
+                                    texture,
+                                );
 
                                 for object in objects {
                                     application.object_created(object);
@@ -131,7 +160,11 @@ impl ApplicationHandler for Nitron {
                             }
 
                             NitronTask::MoveCamera(new_transformation) => {
-                                self.app.renderer.move_camera(new_transformation.position, new_transformation.rotation, new_transformation.scale);
+                                self.app.renderer.move_camera(
+                                    new_transformation.position,
+                                    new_transformation.rotation,
+                                    new_transformation.scale,
+                                );
                             }
                         }
                     }

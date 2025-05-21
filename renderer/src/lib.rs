@@ -1,4 +1,4 @@
-pub mod renderer;
 pub mod rendered_object;
-pub mod types;
+pub mod renderer;
 mod shaders;
+pub mod types;

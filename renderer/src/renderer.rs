@@ -5,18 +5,33 @@ use egui_winit_vulkano::{Gui, GuiConfig};
 use glam::{Mat4, Quat, Vec3};
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
-use vulkano::buffer::{AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
-use vulkano::command_buffer::allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo};
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferInheritanceInfo, CommandBufferUsage, CopyBufferToImageInfo, RenderPassBeginInfo, SubpassBeginInfo, SubpassContents};
+use vulkano::buffer::{
+    AllocateBufferError, Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer,
+};
+use vulkano::command_buffer::allocator::{
+    StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
+};
+use vulkano::command_buffer::{
+    AutoCommandBufferBuilder, CommandBufferInheritanceInfo, CommandBufferUsage,
+    CopyBufferToImageInfo, RenderPassBeginInfo, SubpassBeginInfo, SubpassContents,
+};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{DescriptorSet, WriteDescriptorSet};
 use vulkano::device::physical::PhysicalDeviceType;
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, DeviceOwned, Queue, QueueCreateInfo, QueueFlags};
+use vulkano::device::{
+    Device, DeviceCreateInfo, DeviceExtensions, DeviceOwned, Queue, QueueCreateInfo, QueueFlags,
+};
 use vulkano::format::Format;
+use vulkano::image::sampler::{
+    Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode,
+};
 use vulkano::image::view::ImageView;
 use vulkano::image::{Image, ImageCreateInfo, ImageType, ImageUsage, SampleCount};
 use vulkano::instance::{Instance, InstanceCreateFlags, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryTypeFilter, StandardMemoryAllocator};
+use vulkano::memory::allocator::{
+    AllocationCreateInfo, MemoryAllocator, MemoryTypeFilter, StandardMemoryAllocator,
+};
+use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
 use vulkano::pipeline::graphics::color_blend::{ColorBlendAttachmentState, ColorBlendState};
 use vulkano::pipeline::graphics::depth_stencil::{DepthState, DepthStencilState};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
@@ -24,15 +39,17 @@ use vulkano::pipeline::graphics::multisample::MultisampleState;
 use vulkano::pipeline::graphics::rasterization::{CullMode, FrontFace, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::{Vertex, VertexDefinition};
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
 use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
-use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint, PipelineLayout, PipelineShaderStageCreateInfo};
+use vulkano::pipeline::{
+    GraphicsPipeline, Pipeline, PipelineBindPoint, PipelineLayout, PipelineShaderStageCreateInfo,
+};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::EntryPoint;
-use vulkano::swapchain::{acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo};
+use vulkano::swapchain::{
+    Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo, acquire_next_image,
+};
 use vulkano::sync::GpuFuture;
-use vulkano::{sync, Validated, VulkanError, VulkanLibrary};
-use vulkano::image::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode};
+use vulkano::{Validated, VulkanError, VulkanLibrary, sync};
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -104,7 +121,8 @@ impl Renderer {
                 ..Default::default()
             },
             AllocationCreateInfo::default(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let staging_buffer = Buffer::from_iter(
             self.memory_allocator.clone(),
@@ -113,17 +131,20 @@ impl Renderer {
                 ..Default::default()
             },
             AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                memory_type_filter: MemoryTypeFilter::PREFER_HOST
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
             pixels.iter().cloned(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.clone(),
             self.queue.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
-        ).unwrap();
+        )
+        .unwrap();
 
         builder
             .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
@@ -146,10 +167,27 @@ impl Renderer {
         self.textures.len() - 1
     }
 
-    pub fn create_object(&mut self, vertices: Vec<Vert>, indices: Vec<u32>, transform: Mat4, visible: bool, texture: Option<usize>) -> usize {
-        let vertex_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::VERTEX_BUFFER, vertices).expect("Failed to create vertex buffer");
-        let index_buffer = create_buffer(self.memory_allocator.clone(), BufferUsage::INDEX_BUFFER, indices).expect("Failed to create index buffer");
-        
+    pub fn create_object(
+        &mut self,
+        vertices: Vec<Vert>,
+        indices: Vec<u32>,
+        transform: Mat4,
+        visible: bool,
+        texture: Option<usize>,
+    ) -> usize {
+        let vertex_buffer = create_buffer(
+            self.memory_allocator.clone(),
+            BufferUsage::VERTEX_BUFFER,
+            vertices,
+        )
+        .expect("Failed to create vertex buffer");
+        let index_buffer = create_buffer(
+            self.memory_allocator.clone(),
+            BufferUsage::INDEX_BUFFER,
+            indices,
+        )
+        .expect("Failed to create index buffer");
+
         let obj = RenderedObject {
             transform,
             vertex_buffer,
@@ -173,12 +211,9 @@ impl Renderer {
         self.objects.remove(id);
     }
 
-    pub fn move_camera(&mut self, position: Vec3, rotation: Quat, scale: Vec3 ) {
-        self.view_matrix = Mat4::look_to_rh(
-            position,
-            rotation * Vec3::NEG_Z,
-            Vec3::NEG_Y,
-        ) * Mat4::from_scale(scale);
+    pub fn move_camera(&mut self, position: Vec3, rotation: Quat, scale: Vec3) {
+        self.view_matrix = Mat4::look_to_rh(position, rotation * Vec3::NEG_Z, Vec3::NEG_Y)
+            * Mat4::from_scale(scale);
     }
 
     pub fn new(event_loop: &EventLoop<()>, window_attribs: WindowAttributes) -> Self {
@@ -192,7 +227,7 @@ impl Renderer {
                 ..Default::default()
             },
         )
-            .unwrap();
+        .unwrap();
 
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,
@@ -240,7 +275,7 @@ impl Renderer {
                 ..Default::default()
             },
         )
-            .unwrap();
+        .unwrap();
 
         let queue = queues.next().unwrap();
 
@@ -275,8 +310,9 @@ impl Renderer {
                 mipmap_mode: SamplerMipmapMode::Linear,
                 address_mode: [SamplerAddressMode::Repeat; 3],
                 ..Default::default()
-            }
-        ).unwrap();
+            },
+        )
+        .unwrap();
 
         Renderer {
             instance,
@@ -292,7 +328,7 @@ impl Renderer {
             view_matrix: Mat4::look_to_rh(Vec3::Z * 10.0, Vec3::NEG_Z, Vec3::NEG_Y),
             sampler,
             rcx: None,
-            gui: None
+            gui: None,
         }
     }
 
@@ -302,18 +338,20 @@ impl Renderer {
                 .create_window(self.window_attribs.clone())
                 .unwrap(),
         );
-        
+
         let surface = Surface::from_window(self.instance.clone(), window.clone()).unwrap();
         let window_size = window.inner_size();
 
         let (swapchain, images) = {
             let surface_capabilities = self
-                .device.clone()
+                .device
+                .clone()
                 .physical_device()
                 .surface_capabilities(&surface, Default::default())
                 .unwrap();
             let (image_format, _) = self
-                .device.clone()
+                .device
+                .clone()
                 .physical_device()
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0];
@@ -334,7 +372,7 @@ impl Renderer {
                     ..Default::default()
                 },
             )
-                .unwrap()
+            .unwrap()
         };
 
         let render_pass = vulkano::ordered_passes_renderpass!(
@@ -362,7 +400,7 @@ impl Renderer {
                 depth_stencil: {depth_stencil},
             },*/
         )
-            .unwrap();
+        .unwrap();
 
         self.gui = Some(Gui::new_with_subpass(
             event_loop,
@@ -407,7 +445,13 @@ impl Renderer {
     }
 
     // returns true if consumed
-    pub fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent, layout_function: impl FnOnce(&mut Gui)) -> bool {
+    pub fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+        layout_function: impl FnOnce(&mut Gui),
+    ) -> bool {
         let gui = self.gui.as_mut().unwrap();
 
         if event == WindowEvent::RedrawRequested {
@@ -417,7 +461,7 @@ impl Renderer {
         if gui.update(&event) {
             return true;
         }
-        
+
         let rcx = self.rcx.as_mut().unwrap();
 
         match event {
@@ -505,19 +549,28 @@ impl Renderer {
 
                     let mut descriptor_writes = Vec::new();
 
-                    descriptor_writes.push(WriteDescriptorSet::buffer(descriptor_writes.len() as u32, uniform_buffers[idx].clone()));
+                    descriptor_writes.push(WriteDescriptorSet::buffer(
+                        descriptor_writes.len() as u32,
+                        uniform_buffers[idx].clone(),
+                    ));
 
                     if let Some(tex) = obj.texture.clone() {
-                        descriptor_writes.push(WriteDescriptorSet::image_view_sampler(descriptor_writes.len() as u32, tex, self.sampler.clone()));
+                        descriptor_writes.push(WriteDescriptorSet::image_view_sampler(
+                            descriptor_writes.len() as u32,
+                            tex,
+                            self.sampler.clone(),
+                        ));
                     }
 
-                    descriptor_sets.push(DescriptorSet::new(
-                        self.descriptor_set_allocator.clone(),
-                        layout.clone(),
-                        descriptor_writes,
-                        [],
-                    )
-                        .unwrap());
+                    descriptor_sets.push(
+                        DescriptorSet::new(
+                            self.descriptor_set_allocator.clone(),
+                            layout.clone(),
+                            descriptor_writes,
+                            [],
+                        )
+                        .unwrap(),
+                    );
 
                     idx += 1;
                 }
@@ -526,7 +579,7 @@ impl Renderer {
                     rcx.swapchain.clone(),
                     None,
                 )
-                    .map_err(Validated::unwrap)
+                .map_err(Validated::unwrap)
                 {
                     Ok(r) => r,
                     Err(VulkanError::OutOfDate) => {
@@ -545,7 +598,7 @@ impl Renderer {
                     self.queue.queue_family_index(),
                     CommandBufferUsage::OneTimeSubmit,
                 )
-                    .unwrap();
+                .unwrap();
 
                 builder
                     .begin_render_pass(
@@ -576,7 +629,7 @@ impl Renderer {
                         ..Default::default()
                     },
                 )
-                    .unwrap();
+                .unwrap();
 
                 objects_cmd_buffer_builder
                     .bind_pipeline_graphics(rcx.pipeline.clone())
@@ -596,16 +649,20 @@ impl Renderer {
                             descriptor_sets[idx].clone(),
                         )
                         .unwrap()
-                        .bind_vertex_buffers(
-                            0,
-                            obj.vertex_buffer.clone(),
-                        )
+                        .bind_vertex_buffers(0, obj.vertex_buffer.clone())
                         .unwrap()
                         .bind_index_buffer(obj.index_buffer.clone())
-                        .unwrap()
-                    ;
-                    unsafe { objects_cmd_buffer_builder.draw_indexed(obj.index_buffer.len() as u32, 1, 0, 0, 0) }
                         .unwrap();
+                    unsafe {
+                        objects_cmd_buffer_builder.draw_indexed(
+                            obj.index_buffer.len() as u32,
+                            1,
+                            0,
+                            0,
+                            0,
+                        )
+                    }
+                    .unwrap();
 
                     idx += 1;
                 }
@@ -614,15 +671,18 @@ impl Renderer {
                 builder.execute_commands(cb).unwrap();
 
                 builder
-                    .next_subpass(Default::default(), SubpassBeginInfo {
-                        contents: SubpassContents::SecondaryCommandBuffers,
-                        ..Default::default()
-                    })
+                    .next_subpass(
+                        Default::default(),
+                        SubpassBeginInfo {
+                            contents: SubpassContents::SecondaryCommandBuffers,
+                            ..Default::default()
+                        },
+                    )
                     .unwrap();
 
                 let dimensions = [
                     rcx.swapchain.image_extent()[0],
-                    rcx.swapchain.image_extent()[1]
+                    rcx.swapchain.image_extent()[1],
                 ];
                 let gui_commands = self.gui.as_mut().unwrap().draw_on_subpass_image(dimensions);
                 builder.execute_commands(gui_commands.clone()).unwrap();
@@ -639,7 +699,10 @@ impl Renderer {
                     .unwrap()
                     .then_swapchain_present(
                         self.queue.clone(),
-                        SwapchainPresentInfo::swapchain_image_index(rcx.swapchain.clone(), image_index),
+                        SwapchainPresentInfo::swapchain_image_index(
+                            rcx.swapchain.clone(),
+                            image_index,
+                        ),
                     )
                     .then_signal_fence_and_flush();
 
@@ -656,8 +719,6 @@ impl Renderer {
                         rcx.previous_frame_end = Some(sync::now(self.device.clone()).boxed());
                     }
                 }
-
-                
             }
             _ => {}
         }
@@ -679,8 +740,7 @@ fn regen_framebuffer(
     memory_allocator: Arc<StandardMemoryAllocator>,
     vs: &EntryPoint,
     fs: &EntryPoint,
-) -> (Vec<Arc<Framebuffer>>, Arc<GraphicsPipeline>)
-{
+) -> (Vec<Arc<Framebuffer>>, Arc<GraphicsPipeline>) {
     let device = memory_allocator.device();
 
     let depth_buffer = ImageView::new_default(
@@ -695,9 +755,9 @@ fn regen_framebuffer(
             },
             AllocationCreateInfo::default(),
         )
-            .unwrap(),
+        .unwrap(),
     )
-        .unwrap();
+    .unwrap();
 
     let framebuffers = images
         .iter()
@@ -711,14 +771,12 @@ fn regen_framebuffer(
                     ..Default::default()
                 },
             )
-                .unwrap()
+            .unwrap()
         })
         .collect::<Vec<_>>();
 
     let pipeline = {
-        let vertex_input_state = Vert::per_vertex()
-            .definition(vs)
-            .unwrap();
+        let vertex_input_state = Vert::per_vertex().definition(vs).unwrap();
         let stages = [
             PipelineShaderStageCreateInfo::new(vs.clone()),
             PipelineShaderStageCreateInfo::new(fs.clone()),
@@ -729,7 +787,7 @@ fn regen_framebuffer(
                 .into_pipeline_layout_create_info(device.clone())
                 .unwrap(),
         )
-            .unwrap();
+        .unwrap();
         let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
 
         GraphicsPipeline::new(
@@ -745,8 +803,8 @@ fn regen_framebuffer(
                         extent: window_size.into(),
                         depth_range: 0.0..=1.0,
                     }]
-                        .into_iter()
-                        .collect(),
+                    .into_iter()
+                    .collect(),
                     ..Default::default()
                 }),
                 rasterization_state: Some(RasterizationState {
@@ -767,7 +825,7 @@ fn regen_framebuffer(
                 ..GraphicsPipelineCreateInfo::layout(layout)
             },
         )
-            .unwrap()
+        .unwrap()
     };
 
     (framebuffers, pipeline)

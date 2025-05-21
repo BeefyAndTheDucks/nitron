@@ -11,14 +11,14 @@ pub struct Vert {
 pub struct Transformation {
     pub position: Vec3,
     pub rotation: Quat,
-    pub scale: Vec3
+    pub scale: Vec3,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct EulerTransformation {
     pub position: Vec3,
     pub rotation: Vec3,
-    pub scale: Vec3
+    pub scale: Vec3,
 }
 
 impl EulerTransformation {
@@ -26,24 +26,37 @@ impl EulerTransformation {
         Self {
             position,
             rotation,
-            scale
+            scale,
         }
     }
 
     pub fn as_transformation(self) -> Transformation {
-        Transformation::new(self.position, Quat::from_euler(EulerRot::XYZ, self.rotation.x.to_radians(), self.rotation.y.to_radians(), self.rotation.z.to_radians()), self.scale)
+        Transformation::new(
+            self.position,
+            Quat::from_euler(
+                EulerRot::XYZ,
+                self.rotation.x.to_radians(),
+                self.rotation.y.to_radians(),
+                self.rotation.z.to_radians(),
+            ),
+            self.scale,
+        )
     }
 
     pub fn from_transformation(transformation: Transformation) -> Self {
         let rot_radians = transformation.rotation.to_euler(EulerRot::XYZ);
-        let rot_degrees = Vec3::new(rot_radians.0.to_degrees(), rot_radians.1.to_degrees(), rot_radians.2.to_degrees());
+        let rot_degrees = Vec3::new(
+            rot_radians.0.to_degrees(),
+            rot_radians.1.to_degrees(),
+            rot_radians.2.to_degrees(),
+        );
 
         Self {
             position: transformation.position,
             rotation: rot_degrees,
-            scale: transformation.scale
+            scale: transformation.scale,
         }
-    } 
+    }
 
     pub fn new_identity() -> Self {
         Self::new(Vec3::ZERO, Vec3::ZERO, Vec3::ONE)
@@ -67,7 +80,7 @@ impl Transformation {
         Self {
             position,
             rotation,
-            scale
+            scale,
         }
     }
 
@@ -100,11 +113,15 @@ pub struct Object {
 }
 
 impl Object {
-    pub(crate) fn new_from_transformation(id: usize, transformation: Transformation, visible: bool) -> Self {
+    pub(crate) fn new_from_transformation(
+        id: usize,
+        transformation: Transformation,
+        visible: bool,
+    ) -> Self {
         Self {
             id,
             transformation,
-            visible
+            visible,
         }
     }
 }
@@ -116,8 +133,6 @@ pub struct Texture {
 
 impl Texture {
     pub(crate) fn new(id: usize) -> Self {
-        Self {
-            id
-        }
+        Self { id }
     }
 }
