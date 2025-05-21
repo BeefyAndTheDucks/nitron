@@ -1,9 +1,9 @@
-use std::io::Cursor;
 use crate::app::App;
 use crate::types::{Object, Texture, Transformation, Vert};
 use egui_winit_vulkano::Gui;
-use std::time::Instant;
 use image::ImageReader;
+use std::io::Cursor;
+use std::time::Instant;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -35,6 +35,7 @@ pub trait NitronApplication {
     fn update(&mut self, delta_time: f32) -> Vec<NitronTask>;
     fn on_window_event(&mut self, event: &WindowEvent);
     fn create_ui(&mut self, gui: &mut Gui);
+    fn object_created(&mut self, object: Object);
 }
 
 const DEFAULT_ICON_PNG: &[u8] = include_bytes!("../assets/logo.png");
@@ -114,10 +115,15 @@ impl ApplicationHandler for Nitron {
                                 self.app.update_object(object);
                             }
                             NitronTask::CreateObject { vertices, indices, transformation, visible, texture} => {
-                                self.app.create_object(vertices, indices, transformation, visible, texture);
+                                let object = self.app.create_object(vertices, indices, transformation, visible, texture);
+                                application.object_created(object);
                             }
-                            NitronTask::CreateObjectFromFile { path, transformation, visible, texture } => {
-                                self.app.create_objects_from_file(&path, transformation, visible, texture);
+                            NitronTask::CreateObjectFromFile { path, transformation, visible, texture} => {
+                                let objects = self.app.create_objects_from_file(&path, transformation, visible, texture);
+
+                                for object in objects {
+                                    application.object_created(object);
+                                }
                             }
 
                             NitronTask::MoveCamera(new_transformation) => {
