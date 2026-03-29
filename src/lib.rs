@@ -99,8 +99,7 @@ impl ApplicationHandler for Nitron {
         event: WindowEvent,
     ) {
         if let Some(application) = &mut self.application {
-            if self
-                .app
+            if self.app
                 .window_event(event_loop, window_id, event.clone(), |gui| {
                     application.create_ui(gui);
                 })

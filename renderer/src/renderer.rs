@@ -454,10 +454,6 @@ impl Renderer {
     ) -> bool {
         let gui = self.gui.as_mut().unwrap();
 
-        if event == WindowEvent::RedrawRequested {
-            gui.immediate_ui(layout_function);
-        }
-
         if gui.update(&event) {
             return true;
         }
@@ -472,7 +468,7 @@ impl Renderer {
                 rcx.recreate_swapchain = true;
             }
             WindowEvent::RedrawRequested => {
-                //let gui = self.gui.as_mut().unwrap();
+                gui.immediate_ui(layout_function);
 
                 let window_size = rcx.window.inner_size();
 
@@ -685,7 +681,7 @@ impl Renderer {
                     rcx.swapchain.image_extent()[1],
                 ];
                 let gui_commands = self.gui.as_mut().unwrap().draw_on_subpass_image(dimensions);
-                builder.execute_commands(gui_commands.clone()).unwrap();
+                builder.execute_commands(gui_commands).unwrap();
 
                 builder.end_render_pass(Default::default()).unwrap();
 
